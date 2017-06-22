@@ -1,4 +1,4 @@
-package main
+package ringmanager
 
 import (
 	"encoding/json"
@@ -8,8 +8,8 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func RingAdd(w http.ResponseWriter, r *http.Request) {
-	var msg RingAddRequest
+func NodeAdd(w http.ResponseWriter, r *http.Request) {
+	var msg NodeAddRequest
 	err := GetJsonFromRequest(r, &msg)
 	if err != nil {
 		http.Error(w, "request unable to be parsed", 422)
@@ -17,50 +17,55 @@ func RingAdd(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// check information in JSON request
-	if len(msg.ClusterId) == 0 {
-		http.Error(w, "Cluster id missing", http.StatusBadRequest)
+	if len(msg.RingId) == 0 {
+		http.Error(w, "Ring id missing", http.StatusBadRequest)
 		return
 	}
 
-	if len(msg.Name) == 0 {
-		http.Error(w, "Ring name missing", http.StatusBadRequest)
+	if len(msg.Ip) == 0 {
+		http.Error(w, "Ip missing", http.StatusBadRequest)
+		return
+	}
+
+	if len(msg.Port) == 0 {
+		http.Error(w, "Port missing", http.StatusBadRequest)
 		return
 	}
 
 	// create a ring entry
-	ring := NewRingEntryFromRequest(&msg)
+	node := NewNodeEntryFromRequest(&msg)
 
-	var cluster *ClusterEntry
+	var ring *RingEntry
 	err = db.Update(func(tx *bolt.Tx) error {
 		var err error
-		cluster, err = NewClusterEntryFromId(tx, msg.ClusterId)
+		ring, err = NewRingEntryFromId(tx, msg.RingId)
 		if err == ErrNotFound {
-			http.Error(w, "Cluster id does not exist", http.StatusNotFound)
+			http.Error(w, "Ring id does not exist", http.StatusNotFound)
 			return err
 		} else if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return err
 		}
 
-		// Register ring
-		err = ring.Register(tx)
+		// Register node
+		err = node.Register(tx)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusConflict)
 			return err
 		}
 
-		// add ring to cluster
-		cluster.RingAdd(ring.Info.Id)
+		// add node to ring
+		ring.NodeAdd(node.Info.Id)
 
-		// save cluster
-		err = cluster.Save(tx)
+		// save ring
+		err = ring.Save(tx)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return err
 		}
 
-		// save ring
-		err = ring.Save(tx)
+		// save node
+		err = node.Save(tx)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return err
@@ -70,21 +75,23 @@ func RingAdd(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		return
 	}
-	//logger.Info("Added node " + node.Info.Id)
+
 	// Send back we created it (as long as we did not fail)
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(http.StatusCreated)
-	if err := json.NewEncoder(w).Encode(ring.Info); err != nil {
+	if err := json.NewEncoder(w).Encode(node.Info); err != nil {
 		panic(err)
 	}
 }
 
-func RingInformation(w http.ResponseWriter, r *http.Request) {
+func NodeInformation(w http.ResponseWriter, r *http.Request) {
+
+	// Get node id from URL
 	vars := mux.Vars(r)
 	id := vars["id"]
 
-	// get ring information
-	info, err := getRingInfo(id)
+	// Get Node information
+	info, err := getNodeInfo(id)
 	if err == ErrNotFound {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -99,14 +106,15 @@ func RingInformation(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewEncoder(w).Encode(info); err != nil {
 		panic(err)
 	}
+
 }
 
-func getRingInfo(id string) (*RingInfoResponse, error) {
-	var info *RingInfoResponse
+func getNodeInfo(id string) (*NodeInfoResponse, error) {
+	var info *NodeInfoResponse
 	err := db.View(func(tx *bolt.Tx) error {
 
 		// Create a db entry from the id
-		entry, err := NewRingEntryFromId(tx, id)
+		entry, err := NewNodeEntryFromId(tx, id)
 		if err != nil {
 			return err
 		}
@@ -125,12 +133,11 @@ func getRingInfo(id string) (*RingInfoResponse, error) {
 	return info, nil
 }
 
-func RingDelete(w http.ResponseWriter, r *http.Request) {
+func NodeDelete(w http.ResponseWriter, r *http.Request) {
 	// TODO
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(http.StatusNotFound)
 	if err := json.NewEncoder(w).Encode(jsonErr{Code: http.StatusNotFound, Text: "Not Implemented yet"}); err != nil {
 		panic(err)
 	}
-
 }

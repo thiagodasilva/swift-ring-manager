@@ -1,4 +1,4 @@
-package main
+package ringmanager
 
 import (
 	"github.com/boltdb/bolt"
