@@ -7,7 +7,6 @@ import (
 	"sort"
 
 	"github.com/boltdb/bolt"
-	"github.com/heketi/utils"
 	"github.com/lpabon/godbc"
 )
 
@@ -161,7 +160,7 @@ func (r *RingEntry) Unmarshal(buffer []byte) error {
 }
 
 func (r *RingEntry) NodeAdd(id string) {
-	godbc.Require(!utils.SortedStringHas(r.Nodes, id))
+	godbc.Require(!SortedStringHas(r.Nodes, id))
 
 	r.Nodes = append(r.Nodes, id)
 	r.Nodes.Sort()

@@ -4,7 +4,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/thiagodasilva/swift-ring-manager/ringmanager"
+	"github.com/thiagodasilva/swift-ring-manager/pkg/ringmanager"
 )
 
 func main() {
