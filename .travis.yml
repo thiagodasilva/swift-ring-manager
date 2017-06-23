@@ -1,0 +1,16 @@
+language: go
+before_install:
+  - mkdir $GOPATH/bin
+matrix:
+  include:
+  - go: 1.7.5
+    env: OPTIONS="-race"
+  - go: 1.8.1
+    env: OPTIONS="-race"
+  - go: 1.8.1
+    env: OPTIONS=""
+script:
+- go fmt $(go list ./... | grep -v vendor) | wc -l | grep 0
+- go vet $(go list ./... | grep -v vendor)
+- make
+- make test
