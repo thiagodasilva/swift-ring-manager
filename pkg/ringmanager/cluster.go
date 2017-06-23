@@ -1,8 +1,24 @@
+/*
+Copyright 2017 The swift-ring-master Authors
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 package ringmanager
 
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os/exec"
 
@@ -172,6 +188,7 @@ func BuildRing(w http.ResponseWriter, r *http.Request) {
 	id := vars["id"]
 
 	// Get info from db
+	// TODO: should build one struct with all topology info
 	clusterInfo, err := getClusterInfo(id)
 	if err == ErrNotFound {
 		http.Error(w, err.Error(), http.StatusNotFound)
@@ -181,8 +198,7 @@ func BuildRing(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//TODO define better location to store rings
-	clusterPath := filepath.Join("/tmp", clusterInfo.Id)
+	clusterPath := filepath.Join(ringmanager_dir, clusterInfo.Id)
 	os.Mkdir(clusterPath, 0774)
 
 	for _, ringId := range clusterInfo.Rings {
@@ -242,4 +258,39 @@ func BuildRing(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	w.WriteHeader(http.StatusOK)
+}
+
+func DownloadRing(w http.ResponseWriter, r *http.Request) {
+	// Get the id from the URL
+	vars := mux.Vars(r)
+	id := vars["id"]
+	ring := vars["ring"]
+
+	// Get info from db
+	clusterInfo, err := getClusterInfo(id)
+	if err == ErrNotFound {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	} else if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	clusterPath := filepath.Join(ringmanager_dir, clusterInfo.Id)
+	ringName := ring + ".ring.gz"
+	ringPath := filepath.Join(clusterPath, ringName)
+	ringFile, err := os.Open(ringPath)
+	defer ringFile.Close()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	etag, err := FileHash(ringFile)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Etag", etag)
+	w.WriteHeader(http.StatusOK)
+	ringFile.Seek(0, 0)
+	io.Copy(w, ringFile)
 }
