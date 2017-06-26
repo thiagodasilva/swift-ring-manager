@@ -23,12 +23,12 @@ import (
 	"github.com/boltdb/bolt"
 	"github.com/gorilla/mux"
 	"github.com/heketi/rest"
+	"github.com/spf13/viper"
 )
 
 var db *bolt.DB
 var dbReadOnly bool
-var dbfilename = "swift_clusters.db"
-var ringmanager_dir = "/tmp/ringmanager"
+var ringManagerDir string
 
 const (
 	ASYNC_ROUTE           = "/queue"
@@ -42,10 +42,12 @@ type App struct {
 	asyncManager *rest.AsyncHttpManager
 }
 
-func NewRouter() *mux.Router {
+func NewRouter(conf *viper.Viper) *mux.Router {
 
 	var err error
-	dbFilePath := filepath.Join(ringmanager_dir, dbfilename)
+	ringManagerDir = conf.GetString("ringmanager_dir")
+	dbfilename := conf.GetString("dbfilename")
+	dbFilePath := filepath.Join(ringManagerDir, dbfilename)
 
 	// Setup BoltDB database
 	db, err = bolt.Open(dbFilePath, 0600, &bolt.Options{Timeout: 3 * time.Second})

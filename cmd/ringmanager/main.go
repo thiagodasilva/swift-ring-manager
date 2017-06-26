@@ -20,11 +20,38 @@ import (
 	"log"
 	"net/http"
 
+	"fmt"
+
+	"github.com/spf13/viper"
 	"github.com/thiagodasilva/swift-ring-manager/pkg/ringmanager"
 )
 
-func main() {
+func loadConfig() (*viper.Viper, error) {
+	v := viper.New()
+	viper.SetConfigName("ringmanager")
+	viper.AddConfigPath("/etc/ringmanager")
+	err := viper.ReadInConfig()
+	if err != nil {
+		return nil, err
+	}
+	loadDefaultConfigOptions(v)
+	return v, nil
+}
 
-	router := ringmanager.NewRouter()
-	log.Fatal(http.ListenAndServe(":8090", router))
+func loadDefaultConfigOptions(v *viper.Viper) {
+	v.SetDefault("dbfilename", "swift_clusters.db")
+	v.SetDefault("ringmanager_dir", "/var/lib/ringmanager")
+	v.SetDefault("bind_ip", "127.0.0.1")
+	v.SetDefault("bind_port", "8090")
+
+}
+
+func main() {
+	v, err := loadConfig()
+	if err != nil {
+		panic(fmt.Errorf("Fatal error loading config file: %s", err))
+	}
+	addr := v.GetString("bind_ip") + ":" + v.GetString("bind_port")
+	router := ringmanager.NewRouter(v)
+	log.Fatal(http.ListenAndServe(addr, router))
 }

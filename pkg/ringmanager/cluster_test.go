@@ -16,20 +16,34 @@ limitations under the License.
 package ringmanager
 
 import (
+	"io/ioutil"
 	"net/http/httptest"
+	"os"
 	"testing"
 
 	"bytes"
 	"net/http"
 
 	"github.com/boltdb/bolt"
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestClusterCreate(t *testing.T) {
 
+	// setup config
+	dir, err := ioutil.TempDir("", "ringmanager")
+	if err != nil {
+		assert.FailNow(t, "Unable to make temp dir")
+	}
+	defer os.RemoveAll(dir) // clean up
+
+	v := viper.New()
+	v.Set("dbfilename", "swift_clusters.db")
+	v.Set("ringmanager_dir", dir)
+
 	// setup the server
-	router := NewRouter()
+	router := NewRouter(v)
 	ts := httptest.NewServer(router)
 	defer ts.Close()
 

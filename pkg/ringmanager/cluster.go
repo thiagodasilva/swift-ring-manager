@@ -198,7 +198,7 @@ func BuildRing(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	clusterPath := filepath.Join(ringmanager_dir, clusterInfo.Id)
+	clusterPath := filepath.Join(ringManagerDir, clusterInfo.Id)
 	os.Mkdir(clusterPath, 0774)
 
 	for _, ringId := range clusterInfo.Rings {
@@ -275,7 +275,7 @@ func DownloadRing(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	clusterPath := filepath.Join(ringmanager_dir, clusterInfo.Id)
+	clusterPath := filepath.Join(ringManagerDir, clusterInfo.Id)
 	ringName := ring + ".ring.gz"
 	ringPath := filepath.Join(clusterPath, ringName)
 	ringFile, err := os.Open(ringPath)
