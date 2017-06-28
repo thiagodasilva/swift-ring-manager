@@ -53,6 +53,12 @@ var routes = Routes{
 		"/clusters",
 		ClusterList,
 	},
+	Route{
+		"ClusterDelete",
+		"DELETE",
+		"/clusters/{id:[A-Fa-f0-9]+}",
+		ClusterDelete,
+	},
 
 	// Ring
 	Route{

@@ -85,7 +85,7 @@ func (c *ClusterEntry) NewClusterInfoResponse(tx *bolt.Tx) (*ClusterInfoResponse
 func (c *ClusterEntry) Delete(tx *bolt.Tx) error {
 	godbc.Require(tx != nil)
 
-	// Check if the cluster still has nodes or volumes
+	// Check if the cluster still has rings
 	if len(c.Info.Rings) > 0 {
 		// TODO: logger.Warning(c.ConflictString())
 		return ErrConflict
